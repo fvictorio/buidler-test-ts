@@ -1,24 +1,51 @@
-import { task, usePlugin } from "@nomiclabs/buidler/config";
+import { usePlugin } from "@nomiclabs/buidler/config";
+import path from "path";
+import fs from "fs";
+// @ts-ignore
 
+usePlugin("@nomiclabs/buidler-ethers");
+usePlugin("buidler-typechain");
 usePlugin("@nomiclabs/buidler-waffle");
+usePlugin("@nomiclabs/buidler-etherscan");
 
-// This is a sample Buidler task. To learn how to create your own go to
-// https://buidler.dev/guides/create-task.html
-task("accounts", "Prints the list of accounts", async (taskArgs, bre) => {
-  const accounts = await bre.ethers.getSigners();
-
-  for (const account of accounts) {
-    console.log(await account.getAddress());
-  }
+["deployments"].forEach((folder) => {
+  const tasksPath = path.join(__dirname, "tasks", folder);
+  fs.readdirSync(tasksPath).forEach((task) => require(`${tasksPath}/${task}`));
 });
 
-// You have to export an object to set up your config
-// This object can have the following optional entries:
-// defaultNetwork, networks, solc, and paths.
-// Go to https://buidler.dev/config/ to learn more
-export default {
-  // This is a sample solc configuration that specifies which version of solc to use
+const DEFAULT_BLOCK_GAS_LIMIT = 9500000;
+const DEFAULT_GAS_PRICE = 10;
+const INFURA_KEY = process.env.INFURA_KEY;
+const ETHERSCAN_KEY = process.env.ETHERSCAN_KEY;
+
+const config = {
   solc: {
-    version: "0.5.15",
+    version: "0.6.6",
+    optimizer: { enabled: false, runs: 200 },
+    evmVersion: "istanbul",
+  },
+  typechain: {
+    outDir: "types",
+    target: "ethers",
+  },
+  etherscan: {
+    url: "https://api-kovan.etherscan.io/api",
+    apiKey: ETHERSCAN_KEY
+  },
+  defaultNetwork: "buidlerevm",
+  mocha: {
+    enableTimeouts: false,
+  },
+  networks: {
+    kovan: {
+      url: `https://kovan.infura.io/v3/${INFURA_KEY}`,
+      hardfork: "istanbul",
+      blockGasLimit: DEFAULT_BLOCK_GAS_LIMIT,
+      gasMultiplier: DEFAULT_GAS_PRICE,
+      chainId: 42,
+      accounts: [process.env.KOVAN_PK],
+    },
   },
 };
+
+export default config;
